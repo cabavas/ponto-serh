@@ -1,0 +1,49 @@
+services:
+  db:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ponto_serh
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db_data:/var/lib/mysql
+    networks:
+      - ponto-serh
+
+  app:
+    build: .
+    container_name: app
+    volumes:
+      - ./:/var/www/html:rw
+    ports:
+      - "8000:80"
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ponto-serh
+      DB_USERNAME: root
+      DB_PASSWORD: root
+    depends_on:
+      - db
+    networks:
+      - ponto-serh
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin_ponto-serh
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: root
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    networks:
+      - ponto-serh
+
+networks:
+  ponto-serh:
+    driver: bridge
