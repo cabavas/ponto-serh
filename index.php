@@ -18,11 +18,11 @@ if ($user->isAdmin) {
     $sql = "SELECT e.*, u.name as user_name 
             FROM entries e 
             JOIN users u ON e.id_user = u.id 
-            ORDER BY e.entry DESC";
+            ORDER BY e.entry ASC";
     $stmt = $conn->prepare($sql);
 } else {
     // Keep existing query for regular users
-    $sql = "SELECT * FROM entries WHERE id_user = :id_user ORDER BY entry DESC";
+    $sql = "SELECT * FROM entries WHERE id_user = :id_user ORDER BY entry ASC";
     $stmt = $conn->prepare($sql);
     $stmt->bindParam(':id_user', $user->id);
 }
@@ -35,7 +35,7 @@ $groupedRecords = [];
 foreach ($records as $record) {
     $date = date('Y-m-d', strtotime($record->entry));
     $userName = $user->isAdmin ? $record->user_name : $user->name;
-    
+
     if (!isset($groupedRecords[$date][$userName])) {
         $groupedRecords[$date][$userName] = ['entrada' => null, 'saida' => null];
     }
@@ -59,6 +59,12 @@ foreach ($records as $record) {
     <meta content="SERH" name="keywords">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="author" content="SERH">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f786d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
 
     <!-- Favicons -->
     <link href="assets/logo.ico" rel="icon">
@@ -99,42 +105,42 @@ foreach ($records as $record) {
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Registro de Ponto</h5>
                         <?php if (!$user->isAdmin): ?>
-                        <button style="background-color: #0f786d" class="btn text-white" onclick="registerTime()">
-                            Registrar Ponto
-                        </button>
+                            <button style="background-color: #0f786d" class="btn text-white" onclick="registerTime()">
+                                Registrar Ponto
+                            </button>
                         <?php endif; ?>
                     </div>
                     <div class="card-body">
-    <?php foreach ($groupedRecords as $date => $userRecords): ?>
-        <div class="date-group mb-4">
-            <h6 class="border-bottom pb-2 text-muted">
-                <?php echo date('d/m/Y', strtotime($date)); ?>
-            </h6>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <?php if ($user->isAdmin): ?>
-                            <th>Funcionário</th>
-                        <?php endif; ?>
-                        <th>Entrada</th>
-                        <th>Saída</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($userRecords as $userName => $times): ?>
-                        <tr>
-                            <?php if ($user->isAdmin): ?>
-                                <td><?php echo htmlspecialchars($userName); ?></td>
-                            <?php endif; ?>
-                            <td><?php echo $times['entrada'] ?? '-'; ?></td>
-                            <td><?php echo $times['saida'] ?? '-'; ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    <?php endforeach; ?>
-</div>
+                        <?php foreach ($groupedRecords as $date => $userRecords): ?>
+                            <div class="date-group mb-4">
+                                <h6 class="border-bottom pb-2 text-muted">
+                                    <?php echo date('d/m/Y', strtotime($date)); ?>
+                                </h6>
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <?php if ($user->isAdmin): ?>
+                                                <th>Funcionário</th>
+                                            <?php endif; ?>
+                                            <th>Entrada</th>
+                                            <th>Saída</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($userRecords as $userName => $times): ?>
+                                            <tr>
+                                                <?php if ($user->isAdmin): ?>
+                                                    <td><?php echo htmlspecialchars($userName); ?></td>
+                                                <?php endif; ?>
+                                                <td><?php echo $times['entrada'] ?? '-'; ?></td>
+                                                <td><?php echo $times['saida'] ?? '-'; ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
 
                 </div>
             </div>
@@ -146,6 +152,39 @@ foreach ($records as $record) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         function registerTime() {
+            if (!navigator.onLine) {
+                // Store in IndexedDB
+                const entry = {
+                    timestamp: new Date().toISOString(),
+                    pending: true
+                };
+
+                // Sync when back online
+                window.addEventListener('online', () => {
+                    // Send pending entries to server
+                    fetch('registrarPonto.php', {
+                            method: 'POST',
+                            body: JSON.stringify(entry)
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Remove from IndexedDB
+                                window.location.reload();
+                            }
+                        });
+                });
+
+                Swal.fire({
+                    title: 'Ponto Registrado!',
+                    text: 'Será sincronizado quando houver conexão',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // Original online behavior
             fetch('registrarPonto.php', {
                     method: 'POST'
                 })
@@ -164,6 +203,30 @@ foreach ($records as $record) {
                 });
         }
     </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+
+    <style>
+        html, body {
+            overscroll-behavior-y: none;
+            height: 100%;
+            width: 100%;
+            position: fixed;
+            overflow-y: auto;
+        }
+    </style>
+
 </body>
 
 </html>

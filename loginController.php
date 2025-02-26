@@ -5,11 +5,11 @@ include_once __DIR__ . '/conexao.php';
 
 $conn = conexao();
 
-$cpf = $_POST['cpf'];
+$nome = $_POST['nome'];
 $password = $_POST['password'];
-$sql = "SELECT * FROM users WHERE cpf = :cpf";
+$sql = "SELECT * FROM users WHERE name = :nome";
 $stmt = $conn->prepare($sql);
-$stmt->bindParam(':cpf', $cpf);
+$stmt->bindParam(':nome', $nome);
 $stmt->execute();
 $user = $stmt->fetch(PDO::FETCH_OBJ);
 

@@ -13,6 +13,8 @@ session_start();
     <meta content="SERH" name="keywords">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="author" content="SERH">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
 
     <!-- Favicons -->
     <link href="assets/logo.ico" rel="icon">
@@ -56,10 +58,10 @@ session_start();
                                         action="loginController.php" method="POST">
 
                                         <div class="col-12">
-                                            <label for="cpf" class="form-label">CPF</label>
+                                            <label for="nome" class="form-label">Login</label>
                                             <div class="input-group has-validation">
 
-                                                <input type="text" name="cpf" class="form-control" id="cpf" required>
+                                                <input type="text" name="nome" class="form-control" id="nome" required>
                                             </div>
                                         </div>
 
@@ -88,7 +90,7 @@ session_start();
     <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i
             class="bi bi-arrow-up-short"></i></a>
 
-            
+
     <?php
     if (isset($_SESSION['error'])) : ?>
         <script>
@@ -103,7 +105,18 @@ session_start();
             });
         </script>
     <?php endif; ?>
-    
+
+    <style>
+        html,
+        body {
+            overscroll-behavior-y: none;
+            height: 100%;
+            width: 100%;
+            position: fixed;
+            overflow-y: auto;
+        }
+    </style>
+
 </body>
 
 </html>

@@ -1,0 +1,24 @@
+{
+    "name": "Ponto SERH",
+    "short_name": "Ponto",
+    "start_url": "/index.php",
+    "display": "fullscreen",
+    "orientation": "portrait",
+    "background_color": "#0f786d",
+    "theme_color": "#0f786d",
+    "icons": [
+    {
+      "src": "assets/logo.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/logo.png",
+      "sizes": "227x119",
+      "type": "image/icon",
+      "purpose": "any maskable"
+    }
+  ]
+  }
+  
