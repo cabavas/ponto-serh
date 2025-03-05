@@ -45,7 +45,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN composer --version
 
 # Expor a porta 80
-EXPOSE 80
+EXPOSE 80 443
 
 # Definir o diretório de trabalho
 WORKDIR /var/www/html
@@ -55,3 +55,27 @@ COPY . /var/www/html
 
 # Iniciar o Apache em primeiro plano
 CMD ["apachectl", "-D", "FOREGROUND"]
+# Copy the new certificates
+COPY localhost.pem /etc/ssl/certs/apache-selfsigned.crt
+COPY localhost-key.pem /etc/ssl/private/apache-selfsigned.key
+# Enable SSL configuration
+RUN a2enmod ssl && \
+    a2ensite default-ssl && \
+    service apache2 restart
+  # Create SSL config file with strong security settings
+  RUN echo "<VirtualHost *:443> \n\
+      ServerName localhost \n\
+      DocumentRoot /var/www/html \n\
+      SSLEngine on \n\
+      SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1 \n\
+      SSLCipherSuite ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384 \n\
+      SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt \n\
+      SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key \n\
+      <Directory /var/www/html> \n\
+          AllowOverride All \n\
+          Require all granted \n\
+      </Directory> \n\
+  </VirtualHost>" > /etc/apache2/sites-available/default-ssl.conf
+
+# Install Certbot
+RUN apt-get update && apt-get install -y certbot python3-certbot-apache
