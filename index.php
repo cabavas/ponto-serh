@@ -66,7 +66,7 @@ require __DIR__ . '/entriesController.php';
     <div class="container mt-4">
         <div class="row">
             <div class="col-md-8 mx-auto">
-                <div class="card">
+                <div class="card mb-3">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Registro de Ponto</h5>
                         <?php if (!$user->isAdmin): ?>
@@ -76,61 +76,88 @@ require __DIR__ . '/entriesController.php';
                         <?php endif; ?>
                     </div>
                     <div class="card-body">
-                        <?php foreach ($groupedRecords as $date => $userRecords): ?>
-                            <div class="date-group mb-4">
-                                <h6 class="border-bottom pb-2 text-muted">
-                                    <?php echo date('d/m/Y', strtotime($date)); ?>
-                                </h6>
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <?php if ($user->isAdmin): ?>
-                                                <th>Funcionário</th>
-                                            <?php endif; ?>
-                                            <th>Entrada</th>
-                                            <th>Saída</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($userRecords as $userName => $times): ?>
-                                            <tr>
-                                                <?php if ($user->isAdmin): ?>
-                                                    <td><?php echo htmlspecialchars($userName); ?></td>
-                                                <?php endif; ?>
-                                                <td><?php echo $times['entrada'] ?? '-'; ?></td>
-                                                <td><?php echo $times['saida'] ?? '-'; ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <?php endforeach; ?>
+                        <div id="pagination-container">
+                            <?php
+                            $daysPerPage = 6;
+                            $allDates = array_keys($groupedRecords);
+                            $totalPages = ceil(count($allDates) / $daysPerPage);
+                            $currentPage = 1;
+
+                            for ($page = 1; $page <= $totalPages; $page++):
+                                $startIndex = ($page - 1) * $daysPerPage;
+                                $pageDates = array_slice($allDates, $startIndex, $daysPerPage);
+                            ?>
+                                <div class="page" data-page="<?php echo $page; ?>" <?php echo $page !== 1 ? 'style="display:none"' : ''; ?>>
+                                    <?php foreach ($pageDates as $date): ?>
+                                        <div class="date-group mb-4">
+                                            <h6 class="border-bottom pb-2 text-muted">
+                                                <?php echo date('d/m/Y', strtotime($date)); ?>
+                                            </h6>
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <?php if ($user->isAdmin): ?>
+                                                            <th>Funcionário</th>
+                                                        <?php endif; ?>
+                                                        <th>Entrada</th>
+                                                        <th>Saída</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php foreach ($groupedRecords[$date] as $userName => $times): ?>
+                                                        <tr>
+                                                            <?php if ($user->isAdmin): ?>
+                                                                <td><?php echo htmlspecialchars($userName); ?></td>
+                                                            <?php endif; ?>
+                                                            <td><?php echo $times['entrada'] ?? '-'; ?></td>
+                                                            <td><?php echo $times['saida'] ?? '-'; ?></td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endfor; ?>
+                        </div>
+
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item"><a class="page-link" href="#" id="prev" style="color:#0f786d; font-weight: 500;">Anterior</a></li>
+                                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                    <li class="page-item"><a class="page-link" href="#" data-page="<?php echo $i; ?>" style="color:#0f786d; font-weight: 500;"><?php echo $i; ?></a></li>
+                                <?php endfor; ?>
+                                <li class="page-item"><a class="page-link" href="#" id="next" style="color:#0f786d; font-weight: 500;">Próximo</a></li>
+                            </ul>
+                        </nav>
                     </div>
 
                 </div>
             </div>
             <?php if ($user->isAdmin): ?>
                 <div class="col-md-3">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Funcionário</th>
-                                <th>Banco de Horas</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($hoursBalance as $userName => $minutes): ?>
+                    <div class="card p-2">
+                        <table class="table table-striped">
+                            <thead>
                                 <tr>
-                                    <td><?php echo htmlspecialchars($userName); ?></td>
-                                    <td><?php
-                                        $hours = floor(abs($minutes) / 60);
-                                        $mins = abs($minutes) % 60;
-                                        echo ($minutes >= 0 ? '+' : '-') . sprintf("%02dh:%02dm", $hours, $mins);
-                                        ?></td>
+                                    <th>Funcionário</th>
+                                    <th>Banco de Horas</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($hoursBalance as $userName => $minutes): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($userName); ?></td>
+                                        <td><?php
+                                            $hours = floor(abs($minutes) / 60);
+                                            $mins = abs($minutes) % 60;
+                                            echo ($minutes >= 0 ? '+' : '-') . sprintf("%02dh:%02dm", $hours, $mins);
+                                            ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
             <?php endif; ?>
@@ -140,84 +167,44 @@ require __DIR__ . '/entriesController.php';
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
-        function registerTime() {
-            if (!navigator.onLine) {
-                // Store in IndexedDB
-                const entry = {
-                    timestamp: new Date().toISOString(),
-                    pending: true
-                };
+        $(document).ready(function() {
+            let currentPage = 1;
+            const totalPages = <?php echo $totalPages; ?>;
 
-                // Sync when back online
-                window.addEventListener('online', () => {
-                    // Send pending entries to server
-                    fetch('registrarPonto.php', {
-                            method: 'POST',
-                            body: JSON.stringify(entry)
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                // Remove from IndexedDB
-                                window.location.reload();
-                            }
-                        });
-                });
-
-                Swal.fire({
-                    title: 'Ponto Registrado!',
-                    text: 'Será sincronizado quando houver conexão',
-                    icon: 'success',
-                    confirmButtonText: 'OK'
-                });
-                return;
+            function showPage(pageNum) {
+                $('.page').hide();
+                $(`[data-page="${pageNum}"]`).show();
+                currentPage = pageNum;
+                updatePaginationState();
             }
 
-            // Original online behavior
-            fetch('registrarPonto.php', {
-                    method: 'POST'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        Swal.fire({
-                            title: 'Ponto Registrado!',
-                            text: 'Horário registrado com sucesso',
-                            icon: 'success',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            window.location.reload();
-                        });
-                    }
-                });
-        }
-    </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registered');
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
+            function updatePaginationState() {
+                $('#prev').toggleClass('disabled', currentPage === 1);
+                $('#next').toggleClass('disabled', currentPage === totalPages);
+                $('.page-link[data-page]').parent().removeClass('active');
+                $(`.page-link[data-page="${currentPage}"]`).parent().addClass('active');
+            }
+
+            $('.page-link[data-page]').click(function(e) {
+                e.preventDefault();
+                showPage(parseInt($(this).data('page')));
             });
-        }
+
+            $('#prev').click(function(e) {
+                e.preventDefault();
+                if (currentPage > 1) showPage(currentPage - 1);
+            });
+
+            $('#next').click(function(e) {
+                e.preventDefault();
+                if (currentPage < totalPages) showPage(currentPage + 1);
+            });
+
+            updatePaginationState();
+        });
     </script>
-
-    <style>
-        html,
-        body {
-            overscroll-behavior-y: none;
-            height: 100%;
-            width: 100%;
-            position: fixed;
-            overflow-y: auto;
-        }
-    </style>
-
 </body>
 
 </html>

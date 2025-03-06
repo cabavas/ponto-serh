@@ -55,7 +55,7 @@ session_start();
                                     </div>
 
                                     <form class="row g-3" novalidate name="formLogin"
-                                        action="loginController.php" method="POST">
+                                        action="authController.php" method="POST">
 
                                         <div class="col-12">
                                             <label for="nome" class="form-label">Login</label>
