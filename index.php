@@ -41,9 +41,27 @@ require __DIR__ . '/entriesController.php';
         rel="stylesheet">
 
     <!-- Vendor CSS Files -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Add this in the <head> section, after the Bootstrap CSS link -->
+    <style>
+        .pagination .page-item.active .page-link {
+            background-color: #0f786d;
+            /* Your desired background color */
+            border-color: #0f786d;
+            /* Border color to match */
+            color: white !important;
+            /* Text color */
+        }
+
+        .pagination .page-item .page-link:focus {
+            box-shadow: 0 0 0 0.25rem rgba(15, 120, 109, 0.25);
+            /* Focus outline color */
+        }
+    </style>
 
 </head>
 
@@ -65,10 +83,60 @@ require __DIR__ . '/entriesController.php';
 
     <div class="container mt-4">
         <div class="row">
-            <div class="col-md-8 mx-auto">
-                <div class="card mb-3">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Registro de Ponto</h5>
+            <div class="col-md-8 mx-auto mb-5">
+                <?php if ($user->isAdmin): ?>
+                    <div class="col-md-6 mt-3">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Banco de Horas por Mês</h5>
+                            </div>
+                            <div class="card-body">
+                                <form action="" method="GET" class="mb-3">
+                                    <div class="input-group">
+                                        <select name="month" class="form-select" style="border-color: #0f786d">
+                                            <?php foreach ($availableMonths as $month): ?>
+                                                <option value="<?php echo $month; ?>" <?php echo $selectedMonth == $month ? 'selected' : ''; ?>>
+                                                    <?php echo date('F Y', strtotime($month . '-01')); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <button type="submit" class="btn text-white" style="background-color: #0f786d">Exibir</button>
+                                    </div>
+                                </form>
+
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Funcionário</th>
+                                            <th>Banco de Horas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (empty($selectedMonthBalance)): ?>
+                                            <tr>
+                                                <td colspan="2" class="text-center">Nenhum registro encontrado</td>
+                                            </tr>
+                                        <?php else: ?>
+                                            <?php foreach ($selectedMonthBalance as $userName => $minutes): ?>
+                                                <tr>
+                                                    <td><?php echo htmlspecialchars($userName); ?></td>
+                                                    <td><?php
+                                                        $hours = floor(abs($minutes) / 60);
+                                                        $mins = abs($minutes) % 60;
+                                                        echo ($minutes >= 0 ? '+' : '-') . sprintf("%02dh:%02dm", $hours, $mins);
+                                                        ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                <div class="card mb-3 mt-5">
+                    <div class="card-header d-flex justify-content-between align-items-center flex-col">
+                        <h5 class="mb-0 col-md-6">Registro de Ponto</h5>
                         <?php if (!$user->isAdmin): ?>
                             <button style="background-color: #0f786d" class="btn text-white" onclick="registerTime()">
                                 Registrar Ponto
@@ -135,7 +203,7 @@ require __DIR__ . '/entriesController.php';
                 </div>
             </div>
             <?php if ($user->isAdmin): ?>
-                <div class="col-md-3">
+                <div class="col-md-3 d-none d-md-block">
                     <div class="card p-2">
                         <table class="table table-striped">
                             <thead>
@@ -169,42 +237,115 @@ require __DIR__ . '/entriesController.php';
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        $(document).ready(function() {
+        document.addEventListener('DOMContentLoaded', function() {
             let currentPage = 1;
             const totalPages = <?php echo $totalPages; ?>;
 
             function showPage(pageNum) {
-                $('.page').hide();
-                $(`[data-page="${pageNum}"]`).show();
+                document.querySelectorAll('.page').forEach(page => {
+                    page.style.display = 'none';
+                });
+                document.querySelector(`[data-page="${pageNum}"]`).style.display = 'block';
                 currentPage = pageNum;
                 updatePaginationState();
             }
 
             function updatePaginationState() {
-                $('#prev').toggleClass('disabled', currentPage === 1);
-                $('#next').toggleClass('disabled', currentPage === totalPages);
-                $('.page-link[data-page]').parent().removeClass('active');
-                $(`.page-link[data-page="${currentPage}"]`).parent().addClass('active');
+                // Update prev button state
+                const prevBtn = document.getElementById('prev');
+                if (currentPage === 1) {
+                    prevBtn.classList.add('disabled');
+                } else {
+                    prevBtn.classList.remove('disabled');
+                }
+
+                // Update next button state
+                const nextBtn = document.getElementById('next');
+                if (currentPage === totalPages) {
+                    nextBtn.classList.add('disabled');
+                } else {
+                    nextBtn.classList.remove('disabled');
+                }
+
+                // Update active page
+                document.querySelectorAll('.page-link[data-page]').forEach(link => {
+                    link.parentElement.classList.remove('active');
+                });
+
+                const activePageLink = document.querySelector(`.page-link[data-page="${currentPage}"]`);
+                if (activePageLink) {
+                    activePageLink.parentElement.classList.add('active');
+                }
             }
 
-            $('.page-link[data-page]').click(function(e) {
-                e.preventDefault();
-                showPage(parseInt($(this).data('page')));
+            // Add click handlers for pagination links
+            document.querySelectorAll('.page-link[data-page]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showPage(parseInt(this.getAttribute('data-page')));
+                });
             });
 
-            $('#prev').click(function(e) {
+            // Add click handler for prev button
+            document.getElementById('prev').addEventListener('click', function(e) {
                 e.preventDefault();
                 if (currentPage > 1) showPage(currentPage - 1);
             });
 
-            $('#next').click(function(e) {
+            // Add click handler for next button
+            document.getElementById('next').addEventListener('click', function(e) {
                 e.preventDefault();
                 if (currentPage < totalPages) showPage(currentPage + 1);
             });
 
+            // Initialize pagination state
             updatePaginationState();
         });
     </script>
+
+    <script>
+        function registerTime() {
+            // Send AJAX request to register time
+            fetch('registrarPonto.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Sucesso!',
+                            text: data.message,
+                            icon: 'success',
+                            confirmButtonColor: '#0f786d'
+                        }).then(() => {
+                            // Reload the page to show the new entry
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Erro!',
+                            text: data.message,
+                            icon: 'error',
+                            confirmButtonColor: '#0f786d'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Erro!',
+                        text: 'Ocorreu um erro ao registrar o ponto.',
+                        icon: 'error',
+                        confirmButtonColor: '#0f786d'
+                    });
+                });
+        }
+    </script>
+
+
 </body>
 
 </html>

@@ -146,3 +146,23 @@ $sql = "SELECT u.name, hb.balance
 $stmt = $conn->prepare($sql);
 $stmt->execute([':currentMonth' => $currentMonth]);
 $hoursBalance = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'balance', 'name');
+
+
+// Get all available months with balance data
+$sql = "SELECT DISTINCT month FROM hours_balance ORDER BY month DESC";
+$stmt = $conn->prepare($sql);
+$stmt->execute();
+$availableMonths = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Get the selected month (default to current month if not specified)
+$selectedMonth = isset($_GET['month']) ? $_GET['month'] : $currentMonth;
+
+// Retrieve balance data for the selected month
+$sql = "SELECT u.name, hb.balance 
+        FROM hours_balance hb 
+        JOIN users u ON u.id = hb.user_id 
+        WHERE hb.month = :selectedMonth";
+        
+$stmt = $conn->prepare($sql);
+$stmt->execute([':selectedMonth' => $selectedMonth]);
+$selectedMonthBalance = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'balance', 'name');
